@@ -117,6 +117,24 @@ public class TestAdHocLargeSuite extends RegressionSuite {
         verifyProcFails(client, "More than 25 MB of temp table memory used while executing SQL",
                 "@AdHoc", query);
 
+        // Variant of test query with an ORDER BY clause, which exercises large temp table sorting.
+        String orderByQuery =
+                "select theval1 || '--' || theval2 as vals "
+              + "from (select t1.i,  t1.inl_vc00,  t1.inl_vc01 as t1_inl_vc01,  t1.longval as theval1, "
+              +  "            t2.i,  t2.inl_vc00,  t2.inl_vc01,                 t2.longval as theval2 "
+              + "      from t as t1, t  as t2) as dtbl "
+              + "order by vals "
+              + "limit 5";
+        cr = client.callProcedure("@AdHocLarge", orderByQuery);
+        System.out.println(cr.getResults()[0]);
+        assertContentOfTable(new Object[][] {
+            {"long 0--long 0"},
+            {"long 0--long 1"},
+            {"long 0--long 10"},
+            {"long 0--long 100"},
+            {"long 0--long 101"}
+        }, cr.getResults()[0]);
+
         // Delete some rows
         validateTableOfScalarLongs(client, "delete from t where i >= 5", new long[] {NUM_ROWS - 5});
 
